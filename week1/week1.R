@@ -63,6 +63,16 @@ sumSig_pvals <- replicate(1000, {
 })
 mean(sumSig_pvals)
 
+# Question 1.2.5
+sum(sumSig_pvals>0)/length(sumSig_pvals)
 
-# Question 1.2.4
+
+# Question 1.3.2
+1-(1-0.05)^8793
+
+# Question 1.3.3
+1-(1-0.05)^(1/8793)
+
+
+
 
