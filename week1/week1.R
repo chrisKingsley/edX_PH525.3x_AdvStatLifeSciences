@@ -1,8 +1,11 @@
 # code for HarvardX: PH525.3x Advanced Statistics for the Life Sciences - week 1
 
 library(downloader)
+library(genefilter)
+library(devtools)
 
 # load sample data
+#install_github("genomicsclass/GSE5859Subset")
 library(GSE5859Subset)
 data(GSE5859Subset) 
 
@@ -74,5 +77,32 @@ sum(sumSig_pvals>0)/length(sumSig_pvals)
 1-(1-0.05)^(1/8793)
 
 
+# Question 1.4.1
+m <- 1000
+alpha <- seq(0.01,0.25,0.01)
+plot(alpha/m, 1-(1-alpha)^(1/m), pch=20, xlab="Bonferroni", ylab="Sidak")
+abline(0, 1, col="red")
+
+# Question 1.4.2
+set.seed(1)
+sumSigPvals <- replicate(10000, {
+    pvals <- runif(8793,0,1)
+    sum(pvals < 0.05/8753)
+})
+mean(sumSigPvals)
+
+# Question 1.4.2
+set.seed(1)
+threshold <- 1-(1-0.05)^(1/8793)
+sumSigPvals <- replicate(10000, {
+    pvals <- runif(8793,0,1)
+    sum(pvals < threshold)
+})
+mean(sumSigPvals)
 
 
+# Question 1.5.1
+tests <- rowttests(geneExpression, factor(sampleInfo$group))
+sum(tests$p.value < 0.05)
+
+# Question 1.5.2
