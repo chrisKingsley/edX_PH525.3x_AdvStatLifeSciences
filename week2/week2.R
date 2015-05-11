@@ -58,18 +58,18 @@ cor(distances1, distances2, method = "spearman")
 
 
 # Question 2.3.1
-ftissue = factor(tissue)
+ftissue <- factor(tissue)
 mypar2(1,1)
 plot(z[1,],z[2,],col=as.numeric(ftissue))
 legend("topleft",levels(ftissue),col=seq_along(ftissue),pch=1)
 
-d = dist(t(e))
-mds = cmdscale(d)
+d <- dist(t(e))
+mds <- cmdscale(d)
 cor(z[1,], mds[,1])
 cor(z[2,], mds[,2])
 
 # Question 2.3.2
-ftissue = factor(tissue)
+ftissue <- factor(tissue)
 par(mfrow=c(1,3))
 plot(-z[1,], -z[2,],col=as.numeric(ftissue))
 plot(z[1,], z[2,],col=as.numeric(ftissue))
@@ -95,4 +95,28 @@ boxplot(s$u[,6] ~ geneAnnotation$CHR)
 boxplot(s$u[,6] ~ geneAnnotation$CHR, outline=F)
 
 
+
+# Question 2.4.1
+set.seed(1)
+m <- 10000
+n <- 24
+x <- matrix(rnorm(m*n),m,n)
+colnames(x)<-1:n
+
+d <- dist(t(x))
+plot(hclust(d))
+
+# Question 2.4.2
+set.seed(1)
+m <- 10000
+n <- 24
+
+# get SE of number of clusters produced at cutheight of 143
+numClusts <- replicate(100, {
+    x <- matrix(rnorm(m*n),m,n)
+    colnames(x) <- 1:n
+    d <- dist(t(x))
+    max(cutree(hclust(d), h=143))
+})
+sd(numClusts)
 
