@@ -3,12 +3,12 @@
 library(svd)
 library(gplots)
 library(genefilter)
-
 library(devtools)
-install_github("genomicsclass/tissuesGeneExpression")
-
-install.packages("matrixStats")
+library(caret)
 library(matrixStats)
+library(class)
+
+# install_github("genomicsclass/tissuesGeneExpression")
 
 library(tissuesGeneExpression)
 data(tissuesGeneExpression)
@@ -166,7 +166,7 @@ row.sdIdx <- order(rowSds(x), decreasing=T)[1:50]
 heatmap.2(x[row.sdIdx,], trace="none", scale="row", key=F, main="SD Filter",
           ColSideColors=as.character(g))
 
-row.ttestIdx <- order(rowttests(x, g))[1:50]
+row.ttestIdx <- order(rowttests(x, g)$p.value)[1:50]
 heatmap.2(x[row.ttestIdx,], trace="none", scale="row", key=F, 
           main="T-test Filter", ColSideColors=as.character(g))
 
@@ -195,10 +195,10 @@ max(seq(160,178)[probs >= 0.5])
 
 # Question 2.7.1
 set.seed(5)
-N = 250
-ind = sample(length(y),N)
-Y = y[ind]
-X = x[ind]
+N <- 250
+ind <- sample(length(y),N)
+Y <- y[ind]
+X <- x[ind]
 
 loessModel <- loess(formula = Y ~ X)
 predict(loessModel, newdata=168)
@@ -207,10 +207,10 @@ predict(loessModel, newdata=168)
 # Question 2.7.2
 set.seed(5)
 predictions <- replicate(1000, {
-    N = 250
-    ind = sample(length(y),N)
-    Y = y[ind]
-    X = x[ind]
+    N <- 250
+    ind <- sample(length(y),N)
+    Y <- y[ind]
+    X <- x[ind]
     
     loessModel <- loess(formula = Y ~ X)
     predict(loessModel, newdata=168)
@@ -220,3 +220,33 @@ sd(predictions)
 
 
 # Question 2.8.1
+y <- factor(sampleInfo$group)
+X <- t(geneExpression)
+out <- which(geneAnnotation$CHR %in% c("chrX","chrY"))
+X <- X[,-out]
+
+set.seed(1)
+folds <- createFolds(y, k=10)
+
+
+# Question 2.8.2
+m <- 8
+gene.t.tests <- colttests(X[ -folds[[2]], ], y[ -folds[[2]] ])
+col.idx <- order(gene.t.tests$p.value)[1:m]
+
+pred <- knn(train=X[ -folds[[2]], col.idx], test=X[ folds[[2]], col.idx],
+            cl=y[ -folds[[2]] ], k=5)
+sum(pred != y[ folds[[2]] ])
+
+
+# Question 2.8.3
+errors.knn <- sapply(seq_along(folds), function(i) {
+    gene.t.tests <- colttests(X[ -folds[[i]], ], y[ -folds[[i]] ])
+    col.idx <- order(gene.t.tests$p.value)[1:m]
+    
+    pred <- knn(train=X[ -folds[[i]], col.idx], test=X[ folds[[i]], col.idx],
+                cl=y[ -folds[[i]] ], k=5)
+    
+    sum(pred != y[ folds[[i]] ])
+})
+sum(errors.knn)/length(y)
