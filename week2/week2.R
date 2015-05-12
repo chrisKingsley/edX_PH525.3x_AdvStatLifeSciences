@@ -7,6 +7,7 @@ library(devtools)
 library(caret)
 library(matrixStats)
 library(class)
+library(R.utils)
 
 # install_github("genomicsclass/tissuesGeneExpression")
 
@@ -250,3 +251,58 @@ errors.knn <- sapply(seq_along(folds), function(i) {
     sum(pred != y[ folds[[i]] ])
 })
 sum(errors.knn)/length(y)
+
+
+# Question 2.8.4
+ms=2^c(1:11)
+ks=seq(1,9,2)
+params = expand.grid(k=ks,m=ms)
+for(i in 1:nrow(params)) {
+    errors.knn <- sapply(seq_along(folds), function(j) {
+        gene.t.tests <- colttests(X[ -folds[[j]], ], y[ -folds[[j]] ])
+        col.idx <- order(gene.t.tests$p.value)[1:params$m[i]]
+        
+        pred <- knn(train=X[ -folds[[j]], col.idx], test=X[ folds[[j]], col.idx],
+                    cl=y[ -folds[[j]] ], k=params$k[i])
+        
+        sum(pred != y[ folds[[j]] ])
+    })
+    
+    printf("k:%s m:%s error:%f\n", params$k[i], params$m[i],
+           sum(errors.knn)/length(y))
+}
+
+
+# Question 2.8.5
+for(i in 1:nrow(params)) {
+    gene.t.tests <- colttests(X, y)
+    col.idx <- order(gene.t.tests$p.value)[1:params$m[i]]
+    
+    errors.knn <- sapply(seq_along(folds), function(j) {
+        pred <- knn(train=X[ -folds[[j]], col.idx], test=X[ folds[[j]], col.idx],
+                    cl=y[ -folds[[j]] ], k=params$k[i])
+        
+        sum(pred != y[ folds[[j]] ])
+    })
+    
+    printf("k:%s m:%s error:%f\n", params$k[i], params$m[i],
+           sum(errors.knn)/length(y))
+}
+
+
+# Question 2.8.6
+y2 = factor(as.numeric(format( sampleInfo$date, "%m")=="06"))
+for(i in 1:nrow(params)) {
+    errors.knn <- sapply(seq_along(folds), function(j) {
+        gene.t.tests <- colttests(X[ -folds[[j]], ], y2[ -folds[[j]] ])
+        col.idx <- order(gene.t.tests$p.value)[1:params$m[i]]
+        
+        pred <- knn(train=X[ -folds[[j]], col.idx], test=X[ folds[[j]], col.idx],
+                    cl=y2[ -folds[[j]] ], k=params$k[i])
+        
+        sum(pred != y2[ folds[[j]] ])
+    })
+    
+    printf("k:%s m:%s error:%f\n", params$k[i], params$m[i],
+           sum(errors.knn)/length(y2))
+}
