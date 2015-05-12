@@ -1,9 +1,14 @@
-# code for HarvardX: PH525.3x Advanced Statistics for the Life Sciences - week 1
+# code for HarvardX: PH525.3x Advanced Statistics for the Life Sciences - week 2
 
 library(svd)
+library(gplots)
+library(genefilter)
 
 library(devtools)
 install_github("genomicsclass/tissuesGeneExpression")
+
+install.packages("matrixStats")
+library(matrixStats)
 
 library(tissuesGeneExpression)
 data(tissuesGeneExpression)
@@ -11,20 +16,25 @@ data(tissuesGeneExpression)
 library(GSE5859Subset)
 data(GSE5859Subset)
 
+
 # Question 2.1.1
 table(tissue)
+
 
 # Question 2.1.2
 d <- as.matrix(dist(t(e)))
 d[3,45]
+
 
 # Question 2.1.3
 a <- e["210486_at",]
 b <- e["200805_at",]
 sqrt( crossprod(a-b) )
 
+
 # Question 2.1.4
 nrow(e)^2
+
 
 # Question 2.1.5
 length(dist(t(e)))
@@ -35,9 +45,11 @@ s <- svd(e)
 m <- rowMeans(e)
 cor(m, s$u[,1])
 
+
 # Question 2.2.2
 y <- e - rowMeans(e)
 s2 <- propack.svd(y)
+
 
 # Question 2.2.3
 z <- s2$d * t(s2$v)
@@ -50,6 +62,7 @@ for(i in 2:10) {
     print(sprintf("dim:%d  diff:%f  error:%f", i, diff, 
                   diff/sqrt(crossprod(e[,3]-e[,45]))))
 }
+
 
 # Question 2.2.5
 distances1 <- sqrt(apply(e[,-3]-e[,3],2,crossprod))
@@ -68,6 +81,7 @@ mds <- cmdscale(d)
 cor(z[1,], mds[,1])
 cor(z[2,], mds[,2])
 
+
 # Question 2.3.2
 ftissue <- factor(tissue)
 par(mfrow=c(1,3))
@@ -76,12 +90,14 @@ plot(z[1,], z[2,],col=as.numeric(ftissue))
 #legend("topleft",levels(ftissue),col=seq_along(ftissue),pch=1)
 plot(mds[,1], mds[,2],col=as.numeric(ftissue))
 
+
 # Question 2.3.3
 s <- svd(geneExpression-rowMeans(geneExpression))
 z <- s$d * t(s$v)
 corrMat <- data.frame(dim=1:nrow(z),
                       cor=apply(z, 1, function(x) cor(x, sampleInfo$group)))
 corrMat <- corrMat[order(corrMat$cor, decreasing=T),]
+
 
 # Question 2.3.4
 month <- format(sampleInfo$date, "%m")
@@ -90,10 +106,10 @@ corrMat <- data.frame(dim=1:nrow(z),
                       cor=apply(z, 1, function(x) cor(x, as.numeric(month))))
 corrMat <- corrMat[order(corrMat$cor, decreasing=T),]
 
+
 # Question 2.3.5
 boxplot(s$u[,6] ~ geneAnnotation$CHR)
 boxplot(s$u[,6] ~ geneAnnotation$CHR, outline=F)
-
 
 
 # Question 2.4.1
@@ -105,6 +121,7 @@ colnames(x)<-1:n
 
 d <- dist(t(x))
 plot(hclust(d))
+
 
 # Question 2.4.2
 set.seed(1)
@@ -120,3 +137,86 @@ numClusts <- replicate(100, {
 })
 sd(numClusts)
 
+
+# Question 2.4.3
+set.seed(10)
+kclust <- kmeans(t(geneExpression), centers=5)
+
+# examine relationship between cluster and different sample variables
+table(kclust$cluster, sampleInfo$group)
+table(kclust$cluster, sampleInfo$date)
+table(kclust$cluster, sampleInfo$ethnicity)
+
+
+# Question 2.5.1
+rowIdx <- order(rowMads(geneExpression), decreasing=T)[1:25]
+hmap <- heatmap.2(geneExpression[rowIdx,], trace="none", scale="row", key=F,
+                  labCol=sampleInfo$date, labRow=geneAnnotation$CHR[rowIdx],
+                  ColSideColors=as.character(sampleInfo$group))
+
+
+# Question 2.5.2
+set.seed(17)
+m <- nrow(geneExpression)
+n <- ncol(geneExpression)
+x <- matrix(rnorm(m*n),m,n)
+g <- factor(sampleInfo$g )
+
+row.sdIdx <- order(rowSds(x), decreasing=T)[1:50]
+heatmap.2(x[row.sdIdx,], trace="none", scale="row", key=F, main="SD Filter",
+          ColSideColors=as.character(g))
+
+row.ttestIdx <- order(rowttests(x, g))[1:50]
+heatmap.2(x[row.ttestIdx,], trace="none", scale="row", key=F, 
+          main="T-test Filter", ColSideColors=as.character(g))
+
+
+# Question 2.6.1
+n <- 10000
+set.seed(1)
+men <- rnorm(n,176,7) #height in centimeters
+women <- rnorm(n,162,7) #height in centimeters
+y <- c(rep(0,n),rep(1,n))
+x <- round(c(men,women))
+##mix it up
+ind <- sample(seq(along=y))
+y <- y[ind]
+x <- x[ind]
+
+mean(y[which(x==176)])
+
+
+# Question 2.6.2
+probs <- sapply(160:178, function(z) mean(y[which(x==z)]))
+plot(160:178, probs)
+abline(h=0.5, col="red")
+max(seq(160,178)[probs >= 0.5])
+
+
+# Question 2.7.1
+set.seed(5)
+N = 250
+ind = sample(length(y),N)
+Y = y[ind]
+X = x[ind]
+
+loessModel <- loess(formula = Y ~ X)
+predict(loessModel, newdata=168)
+
+
+# Question 2.7.2
+set.seed(5)
+predictions <- replicate(1000, {
+    N = 250
+    ind = sample(length(y),N)
+    Y = y[ind]
+    X = x[ind]
+    
+    loessModel <- loess(formula = Y ~ X)
+    predict(loessModel, newdata=168)
+})
+
+sd(predictions)
+
+
+# Question 2.8.1
