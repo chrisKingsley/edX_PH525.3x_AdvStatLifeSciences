@@ -5,6 +5,8 @@ library(Biobase)
 library(qvalue)
 library(genefilter)
 
+library(GSE5859Subset)
+data(GSE5859Subset)
 
 # load admissions table
 load('admissions.rda')
@@ -135,3 +137,42 @@ sum(qvals$qvalues < 0.05)
 
 
 # Question 3.3.1
+sex <- as.factor(sampleInfo$group)
+month <- factor(format(sampleInfo$date,"%m"))
+table(sampleInfo$group, month)
+
+pvals <- rowttests(geneExpression, sex)$p.value
+qvals <- qvalue(pvals)
+sum(qvals$qvalues < 0.1)
+
+
+# Question 3.3.2
+idx <- which(qvals$qvalues < 0.1)
+sum(geneAnnotation$CHR[idx] %in% c("chrX","chrY"))/length(idx)
+
+
+# Question 3.3.3
+idx <- which(qvals$qvalues < 0.1 & !geneAnnotation$CHR %in% c("chrX","chrY"))
+pvals <- rowttests(geneExpression[idx,], month)$p.value
+sum(pvals < 0.05)/length(idx)
+
+
+# Question 3.3.5
+X <- model.matrix(~ sex + month)
+pvals <- t( sapply(1:nrow(geneExpression), function(j) {
+    y <- geneExpression[j,]
+    fit <- lm(y ~ X - 1)
+    summary(fit)$coef[2:3,4]
+}) )
+qvals <- qvalue(pvals[,1])
+sum(qvals$qvalues < 0.1)
+
+
+# Question 3.3.6
+idx <- which(qvals$qvalues < 0.1)
+sum(geneAnnotation$CHR[idx] %in% c("chrX","chrY"))/length(idx)
+
+qvals <- qvalue(pvals[,2])
+sum(qvals$qvalues < 0.1)
+
+
