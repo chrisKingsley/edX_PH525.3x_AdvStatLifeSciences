@@ -4,6 +4,8 @@ library(dplyr)
 library(Biobase)
 library(qvalue)
 library(genefilter)
+library(Biobase)
+library(sva)
 
 library(GSE5859Subset)
 data(GSE5859Subset)
@@ -176,3 +178,75 @@ qvals <- qvalue(pvals[,2])
 sum(qvals$qvalues < 0.1)
 
 
+# Question 3.4.1
+y <- geneExpression - rowMeans(geneExpression)
+# samples ordered by gender
+image(cor(y))
+# samples ordered by date
+idx <- order(sampleInfo$date)
+image(cor(y[, idx]))
+
+
+# Question 3.4.2 - 3.4.3
+sex <- as.factor(sampleInfo$group)
+month <- factor(format(sampleInfo$date,"%m"))
+pcs <- svd(y)
+plot(pcs$v[idx,1], col=month[idx])
+
+
+# Question 3.4.4
+d2 <- pcs$d^2
+sum(d2/sum(d2) > 0.1)
+
+
+# Question 3.4.5
+pcMonthCor <- cor(pcs$v, as.numeric(month))
+which(pcMonthCor==max(abs(pcMonthCor)))
+max(abs(pcMonthCor))
+
+
+# Question 3.4.6
+pcGenderCor <- cor(pcs$v, sampleInfo$group)
+which(pcGenderCor==max(abs(pcGenderCor)))
+max(abs(pcGenderCor))
+
+
+# Question 3.4.7
+X <- model.matrix(~sex + pcs$v[,1:2])
+pvals <- sapply(1:nrow(geneExpression), function(j) {
+    y <- geneExpression[j,]
+    fit <- lm(y ~ X - 1)
+    summary(fit)$coef[2,4]
+})
+
+qvals <- qvalue(pvals)
+idx <- which(qvals$qvalues < 0.1)
+length(idx)
+table(geneAnnotation$CHR[idx])
+
+
+# Question 3.5.1
+s <- svd(geneExpression-rowMeans(geneExpression))
+cor(sampleInfo$group, s$v[,1])
+
+sex <- sampleInfo$group
+month <- factor(format(sampleInfo$date,"%m"))
+mod <- model.matrix(~sex)
+svafit <- sva(geneExpression, mod)
+head(svafit$sv)
+
+for(i in 1:ncol(svafit$sv)){
+    print( cor(s$v[,i],svafit$sv[,i]) )
+}
+
+X <- model.matrix(~sex + svafit$sv)
+pvals <- sapply(1:nrow(geneExpression), function(j) {
+    y <- geneExpression[j,]
+    fit <- lm(y ~ X - 1)
+    summary(fit)$coef[2,4]
+})
+
+qvals <- qvalue(pvals)
+idx <- which(qvals$qvalues < 0.1)
+length(idx)
+table(geneAnnotation$CHR[idx])
