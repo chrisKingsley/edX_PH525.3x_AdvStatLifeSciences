@@ -55,3 +55,10 @@ for(N in c(5,10,30,100)) {
 dev.off()
 
 
+# Question 4.1.6
+N <- 189000000
+p <- 1/175223510
+dbinom(2,N,p)
+dpois(2, N*p)
+
+1 - dpois(0, N*p) - dpois(1, N*p)
