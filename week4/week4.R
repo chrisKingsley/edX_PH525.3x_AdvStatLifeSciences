@@ -1,5 +1,6 @@
 # code for HarvardX: PH525.3x Advanced Statistics for the Life Sciences - week 4
 
+library(dplyr)
 library(genefilter)
 library(limma)
 library(R.utils)
@@ -75,6 +76,7 @@ dbinom(2,N,p)
 dpois(2, N*p)
 
 1 - dpois(0, N*p) - dpois(1, N*p)
+ppois(1, N*p, lower.tail=F)
 
 
 # Question 4.2.1
@@ -139,3 +141,43 @@ qqplot(sqrt(vars), f_quantiles)
 abline(0, 1)
 qqplot(sqrt(vars[vars<quantile(vars, 0.95)]), f_quantiles, ylim=c(0,10))
 abline(0, 1)
+
+
+# Question 4.4.1
+(0.99*0.00025)/(0.99*0.00025 + (1-0.99)*(1-0.00025))
+
+
+# Question 4.5.2
+tmpfile <- tempfile()
+tmpdir <- tempdir()
+download.file("http://seanlahman.com/files/database/lahman-csv_2014-02-14.zip",
+              tmpfile)
+##this shows us files
+filenames <- unzip(tmpfile,list=TRUE)
+players <- read.csv(unzip(tmpfile,files="Batting.csv",exdir=tmpdir),as.is=TRUE)
+unlink(tmpdir)
+file.remove(tmpfile)
+
+averages <- players %>%
+    filter(yearID %in% c(2010,2011,2012) & AB>=500) %>%
+    mutate(AVG=H/AB) %>%
+    select(AVG)
+
+meanAve <- mean(averages$AVG, na.rm=T)    
+sdAve <- sd(averages$AVG, na.rm=T) 
+hist(averages$AVG, breaks=25)
+
+qqnorm(averages$AVG)
+qqline(averages$AVG)
+
+qqnorm((averages$AVG-meanAve)/sdAve)
+abline(0,1)
+
+
+# Question 4.5.3
+sdAve_JI <- sqrt(0.45*(1-0.45)/20)
+
+
+# Question 4.5.4
+B = (sdAve_JI*sdAve_JI)/(sdAve_JI*sdAve_JI + sdAve*sdAve)
+postAve_JI <- meanAve + (1-B)*(0.45-meanAve)
