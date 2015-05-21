@@ -4,6 +4,9 @@ library(dplyr)
 library(genefilter)
 library(limma)
 library(R.utils)
+library(Biobase)
+library(SpikeInSubset)
+
 
 library(tissuesGeneExpression)
 data("tissuesGeneExpression")
@@ -179,5 +182,48 @@ sdAve_JI <- sqrt(0.45*(1-0.45)/20)
 
 
 # Question 4.5.4
-B = (sdAve_JI*sdAve_JI)/(sdAve_JI*sdAve_JI + sdAve*sdAve)
+B <- (sdAve_JI*sdAve_JI)/(sdAve_JI*sdAve_JI + sdAve*sdAve)
 postAve_JI <- meanAve + (1-B)*(0.45-meanAve)
+
+
+# Question 4.6.1
+data(rma95)
+pData(rma95)
+y <- exprs(rma95)
+g <- factor(rep(0:1,each=3))
+spike <- rownames(y) %in% colnames(pData(rma95))
+tTests <- rowttests(y, g)
+sigGenes <- tTests$p.value < 0.01
+sum(!spike[sigGenes])/sum(sigGenes)
+
+
+# Question 4.6.2
+sds <- rowSds(y[,g==1])
+outcome <- rep(NA, length(tTests))
+outcome[spike & sigGenes] <- "TP"
+outcome[!spike & !sigGenes] <- "TN"
+outcome[!spike & sigGenes] <- "FP"
+outcome[spike & !sigGenes] <- "FN"
+boxplot(sds ~ outcome, ylab="SD", main="Gene SD")
+
+
+# Question 4.6.3
+fit <- lmFit(y, design=model.matrix(~ g))
+colnames(coef(fit))
+fit <- eBayes(fit)
+
+sampleSD <- fit$sigma
+posteriorSD <- sqrt(fit$s2.post)
+plot(density(sampleSD), ylim=c(0,30), main="SD Estimates")
+lines(density(posteriorSD), col="red")
+legend("topright", legend=c("sample","posterior"), fill=c(1,2))
+
+
+# Question 4.6.4
+fit <- lmFit(y, design=model.matrix(~ g))
+fit <- eBayes(fit)
+# second coefficient relates to diffences between group
+pvals <- fit$p.value[,2] 
+
+sigGenes <- pvals < 0.01
+sum(!spike[sigGenes])/sum(sigGenes)
